@@ -1,0 +1,6 @@
+{
+  "name": "TrendIQ",
+  "description": "Turn Instagram Data Into Your Next Best Content. AI-powered Instagram content intelligence platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

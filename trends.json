@@ -1,0 +1,144 @@
+{
+  "snapshot_metadata": {
+    "provider": "Google Trends",
+    "updated_at": "2026-09-24T18:00:00Z",
+    "region_filter": "Worldwide & Regional",
+    "timeframe": "Past 30 Days",
+    "status": "Google Trends Snapshot"
+  },
+  "trends": [
+    {
+      "id": "trend-1",
+      "topic": "High-Protein Cottage Cheese Flatbread & Bakes",
+      "category": "Nutrition & Diet",
+      "trend_score": 96,
+      "growth_status": "+340% Breakout",
+      "growth_type": "breakout",
+      "region": "Global (US, IN, UK)",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 98,
+      "peak_timing": "Morning & Meal Prep Sundays",
+      "audience_interest": "Fat loss, high satiety snacks, busy professionals",
+      "top_queries": [
+        "cottage cheese flatbread calories",
+        "2 ingredient high protein bread",
+        "cottage cheese egg bake viral"
+      ]
+    },
+    {
+      "id": "trend-2",
+      "topic": "Zone 2 Cardio for Fat Loss vs HIIT",
+      "category": "Cardio & Longevity",
+      "trend_score": 91,
+      "growth_status": "+145% Rising",
+      "growth_type": "rising",
+      "region": "Worldwide",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 89,
+      "peak_timing": "Daily Morning",
+      "audience_interest": "Sustainable fat burn, heart health, stamina without muscle loss",
+      "top_queries": [
+        "how to calculate zone 2 heart rate",
+        "does zone 2 burn more belly fat",
+        "zone 2 treadmill incline walking speed"
+      ]
+    },
+    {
+      "id": "trend-3",
+      "topic": "10-Minute Desk Posture & Micro-Workouts",
+      "category": "Functional Fitness",
+      "trend_score": 88,
+      "growth_status": "+195% Breakout",
+      "growth_type": "breakout",
+      "region": "India & North America",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 86,
+      "peak_timing": "2:00 PM - 5:00 PM Weekdays",
+      "audience_interest": "Desk workers, neck pain relief, quick mobility during work",
+      "top_queries": [
+        "quick back stretch at desk",
+        "wall slide form fix",
+        "sitting all day posture routine"
+      ]
+    },
+    {
+      "id": "trend-4",
+      "topic": "Creatine Timing & Water Retention Myths",
+      "category": "Supplements",
+      "trend_score": 84,
+      "growth_status": "+85% Sustained",
+      "growth_type": "sustained",
+      "region": "Global",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 82,
+      "peak_timing": "Evening Post-Gym",
+      "audience_interest": "Muscle mass, cognitive benefits, debunking side effects",
+      "top_queries": [
+        "creatine before or after workout",
+        "does creatine cause face bloating",
+        "creatine monohydrate vs hcl"
+      ]
+    },
+    {
+      "id": "trend-5",
+      "topic": "Contrast Showers & Heat Shock Recovery",
+      "category": "Recovery & Biohacking",
+      "trend_score": 79,
+      "growth_status": "+72% Rising",
+      "growth_type": "rising",
+      "region": "US, Europe, India",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 76,
+      "peak_timing": "Morning Routine",
+      "audience_interest": "Muscle soreness relief, dopamine booster, accessible biohack",
+      "top_queries": [
+        "hot cold shower ratio for soreness",
+        "contrast shower vs ice bath",
+        "does cold shower reduce hypertrophy"
+      ]
+    },
+    {
+      "id": "trend-6",
+      "topic": "Dumbbell-Only Hyrox Preparation Protocols",
+      "category": "Strength & Endurance",
+      "trend_score": 76,
+      "growth_status": "+210% Breakout",
+      "growth_type": "breakout",
+      "region": "UK, US & Urban India",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 74,
+      "peak_timing": "Weekend Competitors",
+      "audience_interest": "Hybrid athlete training, home gym conditioning, lunges & burpees",
+      "top_queries": [
+        "hyrox training without sled",
+        "dumbbell wall balls alternative",
+        "hyrox pacing strategy beginner"
+      ]
+    },
+    {
+      "id": "trend-7",
+      "topic": "Magnesium Glycinate vs L-Threonate for Deep Sleep",
+      "category": "Sleep & Wellness",
+      "trend_score": 73,
+      "growth_status": "+60% Steady",
+      "growth_type": "steady",
+      "region": "Global",
+      "source": "Google Trends",
+      "snapshot_date": "Sep 2026",
+      "search_volume_index": 71,
+      "peak_timing": "10:00 PM - Midnight",
+      "audience_interest": "REM sleep quality, anxiety reduction, muscle relaxation",
+      "top_queries": [
+        "which magnesium for sleep",
+        "magnesium glycinate dosage night",
+        "magnesium brain fog myth"
+      ]
+    }
+  ]
+}
