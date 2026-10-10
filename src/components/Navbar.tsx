@@ -6,9 +6,10 @@ interface NavbarProps {
   currentScreen: ScreenState;
   setScreen: (screen: ScreenState) => void;
   hasAnalyzed: boolean;
+  opportunityCount?: number;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentScreen, setScreen, hasAnalyzed }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentScreen, setScreen, hasAnalyzed, opportunityCount }) => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -73,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, setScreen, hasAna
               <Lightbulb className="w-4 h-4 text-emerald-400" />
               <span>Opportunities</span>
               <span className="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-0.2 rounded-full font-bold">
-                4
+                {opportunityCount ?? 4}
               </span>
             </button>
           </nav>

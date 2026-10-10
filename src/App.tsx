@@ -24,7 +24,7 @@ export default function App() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isCustomIdeaModalOpen, setIsCustomIdeaModalOpen] = useState(false);
 
-  // Fetch local Google Trends snapshot data on mount
+  // Fetch local Google Trends snapshot data & ranked opportunities on mount
   useEffect(() => {
     async function loadTrends() {
       try {
@@ -33,21 +33,31 @@ export default function App() {
           const data = await res.json();
           if (data && data.trends) {
             setTrends(data.trends);
-            return;
           }
         }
       } catch (err) {
         console.warn('Could not fetch from /api/trends, checking local trends directly...', err);
+        try {
+          const localModule = await import('../trends.json');
+          if (localModule && localModule.default && localModule.default.trends) {
+            setTrends(localModule.default.trends as TrendSignal[]);
+          }
+        } catch (e) {
+          console.error('Failed to import local trends.json:', e);
+        }
       }
 
-      // Direct fallback if API not ready during early boot
+      // Fetch dynamically ranked opportunities
       try {
-        const localModule = await import('../trends.json');
-        if (localModule && localModule.default && localModule.default.trends) {
-          setTrends(localModule.default.trends as TrendSignal[]);
+        const oppRes = await fetch('/api/opportunities');
+        if (oppRes.ok) {
+          const oppData = await oppRes.json();
+          if (oppData && oppData.opportunities && oppData.opportunities.length > 0) {
+            setOpportunities(oppData.opportunities);
+          }
         }
-      } catch (e) {
-        console.error('Failed to import local trends.json:', e);
+      } catch (oppErr) {
+        console.warn('Could not fetch from /api/opportunities, using fallback sample opportunities', oppErr);
       }
     }
 
@@ -124,6 +134,7 @@ export default function App() {
         currentScreen={currentScreen}
         setScreen={setCurrentScreen}
         hasAnalyzed={hasAnalyzed}
+        opportunityCount={opportunities.length}
       />
 
       {/* Main View Router */}
