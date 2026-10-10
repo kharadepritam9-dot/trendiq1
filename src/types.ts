@@ -1,4 +1,4 @@
-import type { ContentAngle, OpportunityScoreBreakdown } from './types/normalized';
+import type { ContentAngle, OpportunityScoreBreakdown, OpportunityExplanation } from './types/normalized';
 export * from './types/normalized';
 
 export interface InstagramAccount {
@@ -59,6 +59,7 @@ export interface TrendSignal {
   peak_timing: string;
   audience_interest: string;
   top_queries: string[];
+  competition_level?: 'Low' | 'Medium' | 'High';
 }
 
 export interface WhyBreakdown {
@@ -122,6 +123,11 @@ export interface Opportunity {
   generatedContent: GeneratedContent;
   selectedAngle?: ContentAngle;
   contentVersions?: GeneratedContent[];
+  explanation?: OpportunityExplanation;
+  originalScore?: number;
+  originalRank?: number;
+  currentRank?: number;
+  isSimulationModified?: boolean;
 }
 
 export type ScreenState = 

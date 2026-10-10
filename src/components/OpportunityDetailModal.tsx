@@ -125,22 +125,40 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
   };
 
   const handleDownloadBrief = () => {
+    const f = opportunity.explanation?.factors;
     const briefText = `=====================================================
-TRENDIQ CONTENT BRIEF
+TRENDIQ CONTENT BRIEF: EXPLAINABLE OPPORTUNITY ENGINE
 Opportunity: ${opportunity.title}
-Opportunity Score: ${opportunity.opportunityScore}/100 (Unchanged)
+Opportunity Score: ${opportunity.opportunityScore}/100${opportunity.isSimulationModified ? ` [SIMULATION: Baseline was ${opportunity.originalScore}]` : ''}
 Category: ${opportunity.matchedCategory}
 Creative Angle: ${(currentContent.angle || selectedAngle).toUpperCase()}
 Content Status: ${currentContent.isAiGenerated ? `AI-Generated (Version ${currentContent.version || versions.length || 1})` : 'Preloaded Sample Preview'}
 Creator: @fitnesswithananya (Ananya Verma)
 =====================================================
 
---- 1. WHY THIS IDEA? (5 PILLARS) ---
-1. NICHE FIT: ${opportunity.whyBreakdown.nicheFit}
-2. HISTORICAL FIT: ${opportunity.whyBreakdown.historicalContentFit}
-3. TREND RELEVANCE: ${opportunity.whyBreakdown.trendRelevance}
-4. CONTENT GAP: ${opportunity.whyBreakdown.contentGap}
-5. AUDIENCE FIT: ${opportunity.whyBreakdown.audienceRelevance}
+--- 1. DETERMINISTIC 5-FACTOR DECISION MATRIX ---
+Formula: Total Opportunity Score = ∑ (Factor Score × Factor Weight)
+${opportunity.explanation ? opportunity.explanation.formula : ''}
+
+1. NICHE FIT (Weight: 25% | Score: ${f?.nicheFit.score ?? opportunity.scoreBreakdown?.nicheFit ?? 70}/100 | Contribution: +${f?.nicheFit.weightedContribution ?? '17.5'} pts):
+   Reason: ${f?.nicheFit.reason ?? opportunity.whyBreakdown.nicheFit}
+   Evidence: ${f?.nicheFit.evidence ?? 'Category & Pillar overlap'}
+
+2. HISTORICAL PERFORMANCE (Weight: 25% | Score: ${f?.historicalFit.score ?? opportunity.scoreBreakdown?.historicalFit ?? 65}/100 | Contribution: +${f?.historicalFit.weightedContribution ?? '16.3'} pts):
+   Reason: ${f?.historicalFit.reason ?? opportunity.whyBreakdown.historicalContentFit}
+   Evidence: ${f?.historicalFit.evidence ?? 'Historical views velocity'}
+
+3. TREND MOMENTUM (Weight: 20% | Score: ${f?.trendRelevance.score ?? opportunity.scoreBreakdown?.trendRelevance ?? 75}/100 | Contribution: +${f?.trendRelevance.weightedContribution ?? '15.0'} pts):
+   Reason: ${f?.trendRelevance.reason ?? opportunity.whyBreakdown.trendRelevance}
+   Evidence: ${f?.trendRelevance.evidence ?? 'Google Trends SVI & Growth bonus'}
+
+4. CONTENT GAP (Weight: 15% | Score: ${f?.contentGap.score ?? opportunity.scoreBreakdown?.contentGap ?? 74}/100 | Contribution: +${f?.contentGap.weightedContribution ?? '11.1'} pts):
+   Reason: ${f?.contentGap.reason ?? opportunity.whyBreakdown.contentGap}
+   Evidence: ${f?.contentGap.evidence ?? 'Topic recency & competition index'}
+
+5. AUDIENCE RELEVANCE (Weight: 15% | Score: ${f?.audienceFit.score ?? opportunity.scoreBreakdown?.audienceFit ?? 70}/100 | Contribution: +${f?.audienceFit.weightedContribution ?? '10.5'} pts):
+   Reason: ${f?.audienceFit.reason ?? opportunity.whyBreakdown.audienceRelevance}
+   Evidence: ${f?.audienceFit.evidence ?? 'Audience interest keyword matches'}
 
 --- 2. HOOK ---
 Spoken Hook: "${currentContent.hook.primary}"
@@ -276,20 +294,27 @@ ${(currentContent.creatorTips || []).map((tip, i) => `  ${i + 1}. ${tip}`).join(
 
         {/* Modal Scrollable Content */}
         <div className="overflow-y-auto p-6 space-y-6 flex-1">
-          {/* TAB 1: WHY THIS IDEA? (5 Pillars) */}
+          {/* TAB 1: WHY THIS IDEA? (Explainable Decision Engine) */}
           {activeTab === 'why' && (
             <div className="space-y-6">
               {/* Question Headline Banner */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">
-                    TrendIQ Decision Matrix
-                  </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                      Explainable Opportunity Engine
+                    </span>
+                    {opportunity.isSimulationModified && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Simulation Mode Active
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-lg sm:text-xl font-bold text-white">
                     “What should I post next — and why?”
                   </h3>
                   <p className="text-sm text-neutral-400 mt-1">
-                    5-pillar mathematical convergence for @fitnesswithananya.
+                    Deterministic 5-factor weighted convergence for @fitnesswithananya.
                   </p>
                 </div>
 
@@ -303,88 +328,355 @@ ${(currentContent.creatorTips || []).map((tip, i) => `  ${i + 1}. ${tip}`).join(
                 </button>
               </div>
 
-              {/* The 5 Pillars: Concise 1-sentence format */}
-              <div className="space-y-3">
-                {/* Pillar 1: Niche Fit */}
-                <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Target className="w-4 h-4 text-indigo-400" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block">
-                      1. NICHE FIT
+              {/* Transparent Mathematical Formula Breakdown */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-neutral-950 via-neutral-900 to-indigo-950/40 border border-indigo-500/30 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">
+                      Transparent Decision Formula
                     </span>
-                    <p className="text-sm text-neutral-200 mt-0.5 font-medium">
-                      {opportunity.whyBreakdown.nicheFit}
-                    </p>
                   </div>
+                  <span className="text-xs font-mono text-neutral-400">
+                    Weighted Contribution = Factor Score × Factor Weight
+                  </span>
                 </div>
 
-                {/* Pillar 2: Historical Fit */}
-                <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Film className="w-4 h-4 text-violet-400" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-violet-400 uppercase tracking-wider block">
-                      2. HISTORICAL FIT
-                    </span>
-                    <p className="text-sm text-neutral-200 mt-0.5 font-medium">
-                      {opportunity.whyBreakdown.historicalContentFit}
-                    </p>
-                  </div>
-                </div>
+                {/* Arithmetic breakdown */}
+                {opportunity.explanation && (
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-xl bg-neutral-950/80 border border-neutral-800/80 font-mono text-xs text-neutral-200 overflow-x-auto">
+                      <div className="text-indigo-300 font-bold mb-1">
+                        Total Opportunity Score = ∑ All 5 Weighted Contributions
+                      </div>
+                      <div className="text-neutral-300">
+                        = ({opportunity.explanation.factors.nicheFit.score} × 25%) + ({opportunity.explanation.factors.historicalFit.score} × 25%) + ({opportunity.explanation.factors.trendRelevance.score} × 20%) + ({opportunity.explanation.factors.contentGap.score} × 15%) + ({opportunity.explanation.factors.audienceFit.score} × 15%)
+                      </div>
+                      <div className="text-emerald-400 font-bold mt-1">
+                        = {opportunity.explanation.factors.nicheFit.weightedContribution} + {opportunity.explanation.factors.historicalFit.weightedContribution} + {opportunity.explanation.factors.trendRelevance.weightedContribution} + {opportunity.explanation.factors.contentGap.weightedContribution} + {opportunity.explanation.factors.audienceFit.weightedContribution} = {(
+                          opportunity.explanation.factors.nicheFit.weightedContribution +
+                          opportunity.explanation.factors.historicalFit.weightedContribution +
+                          opportunity.explanation.factors.trendRelevance.weightedContribution +
+                          opportunity.explanation.factors.contentGap.weightedContribution +
+                          opportunity.explanation.factors.audienceFit.weightedContribution
+                        ).toFixed(1)} ➔ Final Score: {opportunity.opportunityScore} / 100
+                      </div>
+                    </div>
 
-                {/* Pillar 3: Trend Relevance */}
-                <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <TrendingUp className="w-4 h-4 text-amber-400" />
+                    {opportunity.isSimulationModified && opportunity.originalScore !== undefined && (
+                      <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl flex items-center justify-between">
+                        <span>Simulated Change: Baseline score was {opportunity.originalScore} (Rank #{opportunity.originalRank})</span>
+                        <span className="font-bold font-mono">
+                          {opportunity.opportunityScore >= opportunity.originalScore ? `+${opportunity.opportunityScore - opportunity.originalScore}` : `${opportunity.opportunityScore - opportunity.originalScore}`} pts
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
-                      3. TREND RELEVANCE
-                    </span>
-                    <p className="text-sm text-neutral-200 mt-0.5 font-medium">
-                      {opportunity.whyBreakdown.trendRelevance}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Pillar 4: Content Gap */}
-                <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Layers className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-                      4. CONTENT GAP
-                    </span>
-                    <p className="text-sm text-neutral-200 mt-0.5 font-medium">
-                      {opportunity.whyBreakdown.contentGap}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Pillar 5: Audience Fit */}
-                <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Users className="w-4 h-4 text-pink-400" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-pink-400 uppercase tracking-wider block">
-                      5. AUDIENCE FIT
-                    </span>
-                    <p className="text-sm text-neutral-200 mt-0.5 font-medium">
-                      {opportunity.whyBreakdown.audienceRelevance}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Score Factor Breakdown */}
+              {/* The 5 Factors: Full Explainability, Exact Evidence, and Explicit Fallbacks */}
+              <div className="space-y-4">
+                {/* 1. Niche Fit */}
+                {(() => {
+                  const factor = opportunity.explanation?.factors.nicheFit;
+                  const score = factor?.score ?? opportunity.scoreBreakdown?.nicheFit ?? 70;
+                  const weight = factor?.weight ?? 0.25;
+                  const contrib = factor?.weightedContribution ?? Number((score * weight).toFixed(1));
+                  const reason = factor?.reason ?? opportunity.whyBreakdown.nicheFit;
+                  const evidence = factor?.evidence ?? `Category overlap: ${opportunity.matchedCategory}; Creator primary focus: Desk fitness.`;
+                  const isFallback = factor?.isFallback;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800 hover:border-indigo-500/40 transition-colors space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                            <Target className="w-4 h-4 text-indigo-400" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block">
+                              1. NICHE FIT
+                            </span>
+                            <span className="text-xs text-neutral-400 font-medium">
+                              Creator niche and content pillars alignment
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 font-mono">
+                            Weight: {(weight * 100).toFixed(0)}%
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono font-bold">
+                            Score: {score}/100
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            +{contrib} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-neutral-200 font-medium pl-12">
+                        {reason}
+                      </p>
+
+                      <div className="pl-12">
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 font-mono text-[11px] text-neutral-300 space-y-1">
+                          <div className="text-neutral-400 text-[10px] uppercase tracking-wider font-sans font-bold flex items-center justify-between">
+                            <span>Exact Evidence & Calculation Inputs</span>
+                            {isFallback && (
+                              <span className="text-amber-400 font-normal">Neutral fallback applied</span>
+                            )}
+                          </div>
+                          <p className="text-neutral-200 leading-relaxed">{evidence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2. Historical Performance */}
+                {(() => {
+                  const factor = opportunity.explanation?.factors.historicalFit;
+                  const score = factor?.score ?? opportunity.scoreBreakdown?.historicalFit ?? 65;
+                  const weight = factor?.weight ?? 0.25;
+                  const contrib = factor?.weightedContribution ?? Number((score * weight).toFixed(1));
+                  const reason = factor?.reason ?? opportunity.whyBreakdown.historicalContentFit;
+                  const evidence = factor?.evidence ?? `Historical views comparison against baseline.`;
+                  const isFallback = factor?.isFallback;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800 hover:border-violet-500/40 transition-colors space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                            <Film className="w-4 h-4 text-violet-400" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-violet-400 uppercase tracking-wider block">
+                              2. HISTORICAL PERFORMANCE
+                            </span>
+                            <span className="text-xs text-neutral-400 font-medium">
+                              Empirical views velocity, save rates, and format multiplier
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 font-mono">
+                            Weight: {(weight * 100).toFixed(0)}%
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 font-mono font-bold">
+                            Score: {score}/100
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            +{contrib} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-neutral-200 font-medium pl-12">
+                        {reason}
+                      </p>
+
+                      <div className="pl-12">
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 font-mono text-[11px] text-neutral-300 space-y-1">
+                          <div className="text-neutral-400 text-[10px] uppercase tracking-wider font-sans font-bold flex items-center justify-between">
+                            <span>Exact Evidence & Calculation Inputs</span>
+                            {isFallback && (
+                              <span className="text-amber-400 font-normal">Neutral fallback applied</span>
+                            )}
+                          </div>
+                          <p className="text-neutral-200 leading-relaxed">{evidence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 3. Trend Momentum */}
+                {(() => {
+                  const factor = opportunity.explanation?.factors.trendRelevance;
+                  const score = factor?.score ?? opportunity.scoreBreakdown?.trendRelevance ?? 75;
+                  const weight = factor?.weight ?? 0.20;
+                  const contrib = factor?.weightedContribution ?? Number((score * weight).toFixed(1));
+                  const reason = factor?.reason ?? opportunity.whyBreakdown.trendRelevance;
+                  const evidence = factor?.evidence ?? `Search volume index & momentum bonus.`;
+                  const isFallback = factor?.isFallback;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800 hover:border-amber-500/40 transition-colors space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                            <TrendingUp className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+                              3. TREND MOMENTUM
+                            </span>
+                            <span className="text-xs text-neutral-400 font-medium">
+                              Google Trends search volume index & breakout momentum
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 font-mono">
+                            Weight: {(weight * 100).toFixed(0)}%
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold">
+                            Score: {score}/100
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            +{contrib} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-neutral-200 font-medium pl-12">
+                        {reason}
+                      </p>
+
+                      <div className="pl-12">
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 font-mono text-[11px] text-neutral-300 space-y-1">
+                          <div className="text-neutral-400 text-[10px] uppercase tracking-wider font-sans font-bold flex items-center justify-between">
+                            <span>Exact Evidence & Calculation Inputs</span>
+                            {isFallback && (
+                              <span className="text-amber-400 font-normal">Neutral fallback applied</span>
+                            )}
+                          </div>
+                          <p className="text-neutral-200 leading-relaxed">{evidence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 4. Content Gap */}
+                {(() => {
+                  const factor = opportunity.explanation?.factors.contentGap;
+                  const score = factor?.score ?? opportunity.scoreBreakdown?.contentGap ?? 74;
+                  const weight = factor?.weight ?? 0.15;
+                  const contrib = factor?.weightedContribution ?? Number((score * weight).toFixed(1));
+                  const reason = factor?.reason ?? opportunity.whyBreakdown.contentGap;
+                  const evidence = factor?.evidence ?? `Topic recency and market competition.`;
+                  const isFallback = factor?.isFallback;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800 hover:border-emerald-500/40 transition-colors space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                            <Layers className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                              4. CONTENT GAP
+                            </span>
+                            <span className="text-xs text-neutral-400 font-medium">
+                              Topic recency / fatigue penalty & market saturation whitespace
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 font-mono">
+                            Weight: {(weight * 100).toFixed(0)}%
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            Score: {score}/100
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            +{contrib} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-neutral-200 font-medium pl-12">
+                        {reason}
+                      </p>
+
+                      <div className="pl-12">
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 font-mono text-[11px] text-neutral-300 space-y-1">
+                          <div className="text-neutral-400 text-[10px] uppercase tracking-wider font-sans font-bold flex items-center justify-between">
+                            <span>Exact Evidence & Calculation Inputs</span>
+                            {isFallback && (
+                              <span className="text-amber-400 font-normal">Neutral fallback applied</span>
+                            )}
+                          </div>
+                          <p className="text-neutral-200 leading-relaxed">{evidence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 5. Audience Relevance */}
+                {(() => {
+                  const factor = opportunity.explanation?.factors.audienceFit;
+                  const score = factor?.score ?? opportunity.scoreBreakdown?.audienceFit ?? 70;
+                  const weight = factor?.weight ?? 0.15;
+                  const contrib = factor?.weightedContribution ?? Number((score * weight).toFixed(1));
+                  const reason = factor?.reason ?? opportunity.whyBreakdown.audienceRelevance;
+                  const evidence = factor?.evidence ?? `Audience interest keyword matches and active timing.`;
+                  const isFallback = factor?.isFallback;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800 hover:border-pink-500/40 transition-colors space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                            <Users className="w-4 h-4 text-pink-400" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-pink-400 uppercase tracking-wider block">
+                              5. AUDIENCE RELEVANCE
+                            </span>
+                            <span className="text-xs text-neutral-400 font-medium">
+                              Audience demographic interest overlap & peak active time alignment
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 font-mono">
+                            Weight: {(weight * 100).toFixed(0)}%
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-pink-500/15 border border-pink-500/30 text-pink-300 font-mono font-bold">
+                            Score: {score}/100
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                            +{contrib} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-neutral-200 font-medium pl-12">
+                        {reason}
+                      </p>
+
+                      <div className="pl-12">
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 font-mono text-[11px] text-neutral-300 space-y-1">
+                          <div className="text-neutral-400 text-[10px] uppercase tracking-wider font-sans font-bold flex items-center justify-between">
+                            <span>Exact Evidence & Calculation Inputs</span>
+                            {isFallback && (
+                              <span className="text-amber-400 font-normal">Neutral fallback applied</span>
+                            )}
+                          </div>
+                          <p className="text-neutral-200 leading-relaxed">{evidence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Factual Secondary Metrics (Retained & Verified) */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800">
                 <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-4">
-                  Opportunity Score Factors
+                  Deterministic Secondary Execution Signals
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
                   <div className="space-y-1.5">

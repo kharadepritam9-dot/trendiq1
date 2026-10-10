@@ -3,6 +3,7 @@ import {
   TrendSignal,
   Opportunity,
   GeneratedContent,
+  ScoringInputOverrides,
 } from '../../types/normalized';
 import { CreatorAnalysisResult } from '../analysis/creatorAnalysis';
 import {
@@ -87,6 +88,7 @@ function createStarterContent(
 
 /**
  * Generates an appropriate, factual badge based on the highest sub-score.
+ * Index 0 is always assigned 'Top Pick'.
  */
 function deriveBadge(index: number, scores: { trendRelevance: number; historicalFit: number; nicheFit: number }): string {
   if (index === 0) return 'Top Pick';
@@ -100,22 +102,22 @@ function deriveBadge(index: number, scores: { trendRelevance: number; historical
  * Formats a clean opportunity title tailored to the creator.
  */
 function deriveOpportunityTitle(trend: TrendSignal): string {
-  // If matching existing curated opportunity, preserve its refined title
   const existing = sampleOpportunities.find((o) => o.trendId === trend.id);
   if (existing) return existing.title;
-
   return `The Desk-Worker Protocol: ${trend.topic}`;
 }
 
 /**
  * Pipeline that takes creator profile, analysis results, and raw trend signals,
  * scores each candidate deterministically, deduplicates candidates,
- * sorts descending by Opportunity Score, and marks #1 as Top Pick.
+ * sorts descending by Opportunity Score with deterministic tie-breaking,
+ * and marks #1 as Top Pick.
  */
 export function generateRankedOpportunities(
   creator: NormalizedCreatorProfile,
   analysis: CreatorAnalysisResult,
-  trends: TrendSignal[]
+  trends: TrendSignal[],
+  overridesMap?: Record<string, ScoringInputOverrides>
 ): Opportunity[] {
   if (!trends || trends.length === 0) {
     return [];
@@ -135,32 +137,82 @@ export function generateRankedOpportunities(
     }
   }
 
-  // Score each candidate
+  // First compute pure baseline scores & ranks (without overrides)
+  // to track originalScore and originalRank accurately.
+  const baselineScoresMap: Record<string, number> = {};
+  const baselineRanksMap: Record<string, number> = {};
+
+  const baselineCandidates = distinctTrends.map((trend) => ({
+    trend,
+    scores: calculatePillarScores(creator, analysis, trend),
+  }));
+
+  baselineCandidates.sort((a, b) => {
+    if (b.scores.totalScore !== a.scores.totalScore) {
+      return b.scores.totalScore - a.scores.totalScore;
+    }
+    if (b.scores.trendRelevance !== a.scores.trendRelevance) {
+      return b.scores.trendRelevance - a.scores.trendRelevance;
+    }
+    if (b.scores.historicalFit !== a.scores.historicalFit) {
+      return b.scores.historicalFit - a.scores.historicalFit;
+    }
+    if (b.scores.nicheFit !== a.scores.nicheFit) {
+      return b.scores.nicheFit - a.scores.nicheFit;
+    }
+    return a.trend.id.localeCompare(b.trend.id);
+  });
+
+  baselineCandidates.forEach((c, idx) => {
+    baselineScoresMap[c.trend.id] = c.scores.totalScore;
+    baselineRanksMap[c.trend.id] = idx + 1;
+  });
+
+  // Now score each candidate with any active simulation overrides
   const scoredCandidates: Array<{
     trend: TrendSignal;
     scores: ReturnType<typeof calculatePillarScores>;
+    overrides?: ScoringInputOverrides;
   }> = [];
 
   for (const trend of distinctTrends) {
-    const scores = calculatePillarScores(creator, analysis, trend);
-    scoredCandidates.push({ trend, scores });
+    const overrides = overridesMap?.[trend.id] || overridesMap?.[`opp-${trend.id}`];
+    const scores = calculatePillarScores(creator, analysis, trend, overrides);
+    scoredCandidates.push({ trend, scores, overrides });
   }
 
-  // Sort strictly descending by totalScore (highest first)
-  scoredCandidates.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
+  // Sort strictly descending with deterministic multi-key tie-breaking
+  scoredCandidates.sort((a, b) => {
+    if (b.scores.totalScore !== a.scores.totalScore) {
+      return b.scores.totalScore - a.scores.totalScore;
+    }
+    if (b.scores.trendRelevance !== a.scores.trendRelevance) {
+      return b.scores.trendRelevance - a.scores.trendRelevance;
+    }
+    if (b.scores.historicalFit !== a.scores.historicalFit) {
+      return b.scores.historicalFit - a.scores.historicalFit;
+    }
+    if (b.scores.nicheFit !== a.scores.nicheFit) {
+      return b.scores.nicheFit - a.scores.nicheFit;
+    }
+    return a.trend.id.localeCompare(b.trend.id);
+  });
 
-  // Build ranked opportunities
-  const opportunities: Opportunity[] = scoredCandidates.map(({ trend, scores }, idx) => {
-    // Check if pre-curated content exists for this trend
+  // Build ranked opportunities with explainability & rank delta tracking
+  const opportunities: Opportunity[] = scoredCandidates.map(({ trend, scores, overrides }, idx) => {
     const existing = sampleOpportunities.find((o) => o.trendId === trend.id);
     const generatedContent = existing
       ? existing.generatedContent
       : createStarterContent(creator, trend);
 
     const whyBreakdown = buildWhyBreakdown(creator, analysis, trend, scores);
-    const scoreMetrics = buildScoreMetrics(scores, trend);
+    const scoreMetrics = buildScoreMetrics(scores, trend, overrides);
     const badge = deriveBadge(idx, scores);
     const title = deriveOpportunityTitle(trend);
+
+    const isSimulationModified = Boolean(
+      overrides && Object.keys(overrides).length > 0
+    );
 
     const shortReason =
       trend.growth_type === 'breakout'
@@ -179,6 +231,11 @@ export function generateRankedOpportunities(
       whyBreakdown,
       scoreMetrics,
       generatedContent,
+      explanation: scores.explanation,
+      originalScore: baselineScoresMap[trend.id],
+      originalRank: baselineRanksMap[trend.id],
+      currentRank: idx + 1,
+      isSimulationModified,
     };
   });
 

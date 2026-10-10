@@ -15,12 +15,21 @@ import { OpportunityDetailModal } from './components/OpportunityDetailModal';
 import { CustomIdeaModal } from './components/CustomIdeaModal';
 import { demoAccount, sampleOpportunities } from './data/mockData';
 import { ScreenState, TrendSignal, Opportunity, GeneratedContent, ContentAngle } from './types';
+import { getDemoProfile } from './lib/instagram/demoAdapter';
+import { analyzeCreatorProfile } from './lib/analysis/creatorAnalysis';
+import { generateRankedOpportunities } from './lib/opportunities/rankedPipeline';
+import fallbackTrendsData from '../trends.json';
+
+const defaultProfile = getDemoProfile();
+const defaultAnalysis = analyzeCreatorProfile(defaultProfile);
+const defaultTrends = (fallbackTrendsData.trends as unknown as TrendSignal[]) || [];
+const initialRankedOpps = generateRankedOpportunities(defaultProfile, defaultAnalysis, defaultTrends);
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenState>('landing');
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [trends, setTrends] = useState<TrendSignal[]>([]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(sampleOpportunities);
+  const [trends, setTrends] = useState<TrendSignal[]>(defaultTrends);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>(initialRankedOpps);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [sessionVersions, setSessionVersions] = useState<Record<string, GeneratedContent[]>>({});
   const [isCustomIdeaModalOpen, setIsCustomIdeaModalOpen] = useState(false);
@@ -245,6 +254,7 @@ export default function App() {
         {currentScreen === 'opportunities' && (
           <ContentOpportunities
             opportunities={opportunities}
+            trends={trends}
             onSelectOpportunity={handleSelectOpportunity}
             onOpenCustomIdeaModal={() => setIsCustomIdeaModalOpen(true)}
           />

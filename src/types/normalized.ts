@@ -89,15 +89,56 @@ export interface TrendSignal {
   peak_timing: string;
   audience_interest: string;
   top_queries: string[];
+  competition_level?: CompetitionLevel;
+}
+
+export interface FactorExplanation {
+  name: string;                 // e.g. "Niche Fit", "Historical Performance", "Trend Momentum", "Content Gap", "Audience Relevance"
+  score: number;                // 0-100 factor score
+  weight: number;               // e.g. 0.25 (25%)
+  weightedContribution: number; // score * weight (e.g. 17.5)
+  reason: string;               // concise reason supported by account/trend data
+  evidence: string;             // exact evidence / input values used in calculation
+  isFallback?: boolean;         // whether missing-data fallback was used
+}
+
+export interface OpportunityExplanation {
+  factors: {
+    nicheFit: FactorExplanation;
+    historicalFit: FactorExplanation;
+    trendRelevance: FactorExplanation;
+    contentGap: FactorExplanation;
+    audienceFit: FactorExplanation;
+  };
+  formula: string;
+  totalScore: number;
+}
+
+export interface ScoringWeights {
+  nicheFit: number;        // 0.25 (25%)
+  historicalFit: number;   // 0.25 (25%) - Historical Performance
+  trendRelevance: number;  // 0.20 (20%) - Trend Momentum
+  contentGap: number;      // 0.15 (15%) - Content Gap
+  audienceFit: number;     // 0.15 (15%) - Audience Relevance
+}
+
+export interface ScoringInputOverrides {
+  searchVolumeIndex?: number;
+  growthType?: GrowthType;
+  competitionLevel?: CompetitionLevel;
+  daysSinceLastCovered?: number;
+  nicheMatchScore?: number;
+  audienceFitScore?: number;
 }
 
 export interface OpportunityScoreBreakdown {
   nicheFit: number;        // 0-100 (Weight: 25%)
-  historicalFit: number;   // 0-100 (Weight: 20%)
-  trendRelevance: number;  // 0-100 (Weight: 20%)
-  contentGap: number;      // 0-100 (Weight: 20%)
-  audienceFit: number;     // 0-100 (Weight: 15%)
+  historicalFit: number;   // 0-100 (Weight: 25%) - Historical Performance
+  trendRelevance: number;  // 0-100 (Weight: 20%) - Trend Momentum
+  contentGap: number;      // 0-100 (Weight: 15%) - Content Gap
+  audienceFit: number;     // 0-100 (Weight: 15%) - Audience Relevance
   totalScore: number;      // 0-100 deterministic weighted score
+  explanation?: OpportunityExplanation;
 }
 
 export interface WhyBreakdown {
@@ -163,4 +204,9 @@ export interface Opportunity {
   generatedContent: GeneratedContent;
   selectedAngle?: ContentAngle;
   contentVersions?: GeneratedContent[];
+  explanation?: OpportunityExplanation;
+  originalScore?: number;
+  originalRank?: number;
+  currentRank?: number;
+  isSimulationModified?: boolean;
 }
