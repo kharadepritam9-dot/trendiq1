@@ -14,7 +14,7 @@ import { ContentOpportunities } from './components/ContentOpportunities';
 import { OpportunityDetailModal } from './components/OpportunityDetailModal';
 import { CustomIdeaModal } from './components/CustomIdeaModal';
 import { demoAccount, sampleOpportunities } from './data/mockData';
-import { ScreenState, TrendSignal, Opportunity, GeneratedContent } from './types';
+import { ScreenState, TrendSignal, Opportunity, GeneratedContent, ContentAngle } from './types';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenState>('landing');
@@ -22,6 +22,7 @@ export default function App() {
   const [trends, setTrends] = useState<TrendSignal[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(sampleOpportunities);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [sessionVersions, setSessionVersions] = useState<Record<string, GeneratedContent[]>>({});
   const [isCustomIdeaModalOpen, setIsCustomIdeaModalOpen] = useState(false);
 
   // Fetch local Google Trends snapshot data & ranked opportunities on mount
@@ -89,36 +90,101 @@ export default function App() {
     }
   };
 
-  // Regenerate content via Gemini backend
-  const handleRegenerateWithGemini = async (opp: Opportunity): Promise<GeneratedContent | null> => {
+  // Generate or regenerate content via Gemini backend
+  const handleGenerateContent = async (
+    opp: Opportunity,
+    angle: ContentAngle,
+    previousVersions: GeneratedContent[]
+  ): Promise<{ success: boolean; content?: GeneratedContent; error?: string; message?: string }> => {
     try {
+      const payload = {
+        opportunityId: opp.id,
+        title: opp.title,
+        category: opp.matchedCategory,
+        targetAudience: 'Desk workers and busy professionals looking for fat loss and mobility',
+        selectedAngle: angle,
+        previousVersions: previousVersions.map((v) => ({
+          hook: {
+            primary: v.hook.primary,
+            visualHook: v.hook.visualHook,
+            textOverlay: v.hook.textOverlay,
+          },
+          angle: v.angle,
+          caption: v.caption,
+          version: v.version,
+        })),
+      };
+
       const res = await fetch('/api/generate-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: opp.title,
-          category: opp.matchedCategory,
-          trendTopic: opp.title,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (data.success && data.content) {
-        return data.content as GeneratedContent;
-      }
-    } catch (err) {
-      console.error('Failed to generate with Gemini backend:', err);
-    }
 
-    // Default enhanced variation fallback
-    return {
-      ...opp.generatedContent,
-      hook: {
-        ...opp.generatedContent.hook,
-        primary: `Here is the #1 mistake you are making with ${opp.title.split(':')[0]} at your desk.`,
-        textOverlay: `WATCH THIS BEFORE POSTING 🛑`,
-      },
-    };
+      if (!res.ok || !data.success || !data.content) {
+        return {
+          success: false,
+          error: data.error || 'GENERATION_FAILED',
+          message: data.message || `Failed to generate content (HTTP ${res.status}).`,
+        };
+      }
+
+      const newContent: GeneratedContent = {
+        ...data.content,
+        angle,
+        version: data.version || previousVersions.length + 1,
+        isAiGenerated: true,
+      };
+
+      // Record in current client session history
+      setSessionVersions((prev) => {
+        const existing = prev[opp.id] || [];
+        return {
+          ...prev,
+          [opp.id]: [...existing, newContent],
+        };
+      });
+
+      // Update opportunity list while strictly preserving opportunityScore
+      setOpportunities((prev) =>
+        prev.map((o) =>
+          o.id === opp.id
+            ? {
+                ...o,
+                generatedContent: newContent,
+                selectedAngle: angle,
+                contentVersions: [...(o.contentVersions || []), newContent],
+              }
+            : o
+        )
+      );
+
+      // Keep selectedOpportunity in sync
+      setSelectedOpportunity((prev) =>
+        prev && prev.id === opp.id
+          ? {
+              ...prev,
+              generatedContent: newContent,
+              selectedAngle: angle,
+              contentVersions: [...(prev.contentVersions || []), newContent],
+            }
+          : prev
+      );
+
+      return {
+        success: true,
+        content: newContent,
+      };
+    } catch (err: unknown) {
+      console.error('Failed to generate with backend:', err);
+      return {
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: 'Failed to connect to generation service. Please check your network and try again.',
+      };
+    }
   };
 
   // Add new evaluated custom opportunity
@@ -190,7 +256,8 @@ export default function App() {
         <OpportunityDetailModal
           opportunity={selectedOpportunity}
           onClose={() => setSelectedOpportunity(null)}
-          onRegenerateWithGemini={handleRegenerateWithGemini}
+          onGenerateContent={handleGenerateContent}
+          sessionVersions={sessionVersions[selectedOpportunity.id] || []}
         />
       )}
 

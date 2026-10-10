@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Sparkles, 
-  CheckCircle2, 
   HelpCircle, 
   TrendingUp, 
   Film, 
@@ -13,28 +12,85 @@ import {
   RefreshCw, 
   FileText, 
   Download,
-  Volume2,
-  Zap,
+  Layers,
   ArrowRight,
-  Layers
+  AlertTriangle,
+  Lightbulb,
+  CheckCircle2
 } from 'lucide-react';
-import { Opportunity, GeneratedContent } from '../types';
+import { Opportunity, GeneratedContent, ContentAngle } from '../types';
+
+interface CreativeAngleOption {
+  id: ContentAngle;
+  label: string;
+  tagline: string;
+  icon: string;
+}
+
+const CREATIVE_ANGLES: readonly CreativeAngleOption[] = [
+  {
+    id: 'educational',
+    label: 'Educational',
+    tagline: 'Evidence-backed, step-by-step tactical rules & numbers',
+    icon: '🎓',
+  },
+  {
+    id: 'punchy',
+    label: 'Punchy',
+    tagline: 'High-tempo pattern interrupt with instant curiosity gap',
+    icon: '⚡',
+  },
+  {
+    id: 'storytelling',
+    label: 'Storytelling',
+    tagline: 'Relatable desk-worker struggle & transformation arc',
+    icon: '📖',
+  },
+  {
+    id: 'conversational',
+    label: 'Conversational',
+    tagline: 'Direct, candid peer-to-peer coffee-chat tone',
+    icon: '💬',
+  },
+] as const;
 
 interface OpportunityDetailModalProps {
   opportunity: Opportunity;
   onClose: () => void;
-  onRegenerateWithGemini: (opportunity: Opportunity) => Promise<GeneratedContent | null>;
+  onGenerateContent: (
+    opportunity: Opportunity,
+    angle: ContentAngle,
+    previousVersions: GeneratedContent[]
+  ) => Promise<{ success: boolean; content?: GeneratedContent; error?: string; message?: string }>;
+  sessionVersions?: GeneratedContent[];
 }
 
 export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
   opportunity,
   onClose,
-  onRegenerateWithGemini,
+  onGenerateContent,
+  sessionVersions = [],
 }) => {
   const [activeTab, setActiveTab] = useState<'why' | 'generate'>('why');
-  const [currentContent, setCurrentContent] = useState<GeneratedContent>(opportunity.generatedContent);
+  const [selectedAngle, setSelectedAngle] = useState<ContentAngle>(
+    opportunity.selectedAngle || 'educational'
+  );
+  const [currentContent, setCurrentContent] = useState<GeneratedContent>(
+    opportunity.generatedContent
+  );
+  const [versions, setVersions] = useState<GeneratedContent[]>(sessionVersions);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+
+  // Sync state cleanly whenever selected opportunity changes (prevents stale content)
+  useEffect(() => {
+    setCurrentContent(opportunity.generatedContent);
+    setSelectedAngle(opportunity.selectedAngle || 'educational');
+    setVersions(sessionVersions.length > 0 ? sessionVersions : (opportunity.contentVersions || []));
+    setGenerationError(null);
+    setIsGenerating(false);
+  }, [opportunity.id, sessionVersions]);
 
   const handleCopy = (text: string, sectionKey: string) => {
     navigator.clipboard.writeText(text);
@@ -44,15 +100,25 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
     }, 2000);
   };
 
-  const handleRegenerate = async () => {
+  const handleGenerate = async (angleOverride?: ContentAngle) => {
+    const angleToUse = angleOverride || selectedAngle;
     setIsGenerating(true);
+    setGenerationError(null);
+
     try {
-      const updated = await onRegenerateWithGemini(opportunity);
-      if (updated) {
-        setCurrentContent(updated);
+      const result = await onGenerateContent(opportunity, angleToUse, versions);
+
+      if (result.success && result.content) {
+        setCurrentContent(result.content);
+        setVersions((prev) => [...prev, result.content!]);
+        setSelectedAngle(angleToUse);
+      } else {
+        setGenerationError(result.message || 'Generation failed. Please try again.');
+        // NOTE: previous valid content remains unchanged
       }
-    } catch (err) {
-      console.error('Error generating content:', err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setGenerationError(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -62,8 +128,10 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
     const briefText = `=====================================================
 TRENDIQ CONTENT BRIEF
 Opportunity: ${opportunity.title}
-Opportunity Score: ${opportunity.opportunityScore}/100
+Opportunity Score: ${opportunity.opportunityScore}/100 (Unchanged)
 Category: ${opportunity.matchedCategory}
+Creative Angle: ${(currentContent.angle || selectedAngle).toUpperCase()}
+Content Status: ${currentContent.isAiGenerated ? `AI-Generated (Version ${currentContent.version || versions.length || 1})` : 'Preloaded Sample Preview'}
 Creator: @fitnesswithananya (Ananya Verma)
 =====================================================
 
@@ -79,9 +147,12 @@ Spoken Hook: "${currentContent.hook.primary}"
 Text Overlay: "${currentContent.hook.textOverlay}"
 Visual Action: ${currentContent.hook.visualHook}
 
+Alternative Hooks:
+${(currentContent.hook.alternativeHooks || []).map((h, i) => `  ${i + 1}. ${h}`).join('\n')}
+
 --- 3. SCRIPT ---
 Duration: ${currentContent.script.estimatedDuration}
-Audio: ${currentContent.script.audioVibe}
+Audio Vibe: ${currentContent.script.audioVibe}
 
 ${currentContent.script.sections.map((s) => `[${s.timestamp}] ${s.scene}
 Visual: ${s.visualAction}
@@ -98,6 +169,9 @@ Keyword: "${currentContent.cta.commentKeyword}"
 Pinned Comment: ${currentContent.cta.pinnedCommentPrompt}
 
 Hashtags: ${currentContent.hashtags.join(' ')}
+
+--- 6. CREATOR PRODUCTION TIPS ---
+${(currentContent.creatorTips || []).map((tip, i) => `  ${i + 1}. ${tip}`).join('\n')}
 =====================================================
 `;
 
@@ -105,7 +179,7 @@ Hashtags: ${currentContent.hashtags.join(' ')}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `TrendIQ_${opportunity.id}_ContentBrief.txt`;
+    link.download = `TrendIQ_${opportunity.id}_${(currentContent.angle || selectedAngle)}_Brief.txt`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -177,9 +251,15 @@ Hashtags: ${currentContent.hashtags.join(' ')}
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span>Generate Content</span>
-              <span className="text-xs px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
-                Ready
-              </span>
+              {currentContent.isAiGenerated ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                  AI Ready
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                  Preview
+                </span>
+              )}
             </button>
           </div>
 
@@ -354,7 +434,141 @@ Hashtags: ${currentContent.hashtags.join(' ')}
           {/* TAB 2: GENERATE CONTENT (Hook, Script, Caption, CTA) */}
           {activeTab === 'generate' && (
             <div className="space-y-6">
-              {/* Studio Header Action */}
+              {/* Creative Angle Selector & Content Source Badge */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-200">
+                      Creative Angle
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {currentContent.isAiGenerated ? (
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-amber-300" />
+                        <span>AI Generated • <strong className="capitalize">{currentContent.angle || selectedAngle}</strong> (v{currentContent.version || versions.length || 1})</span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                        <FileText className="w-3 h-3 text-amber-400" />
+                        <span>Preloaded Sample Template</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Angle Options Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {CREATIVE_ANGLES.map((angle) => {
+                    const isSelected = selectedAngle === angle.id;
+                    return (
+                      <button
+                        key={angle.id}
+                        type="button"
+                        onClick={() => setSelectedAngle(angle.id)}
+                        disabled={isGenerating}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-950/40 border-indigo-500/70 shadow-lg shadow-indigo-950/50 text-white'
+                            : 'bg-neutral-900/60 border-neutral-800 text-neutral-300 hover:border-neutral-700 hover:bg-neutral-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-base">{angle.icon}</span>
+                          {isSelected && (
+                            <span className="w-2 h-2 rounded-full bg-indigo-400 ring-4 ring-indigo-400/20" />
+                          )}
+                        </div>
+                        <div className="mt-1.5 font-bold text-xs capitalize text-white">
+                          {angle.label}
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-neutral-400 line-clamp-2 leading-tight">
+                          {angle.tagline}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Version History Pill Bar (Same-Topic History) */}
+                {versions.length > 0 && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-neutral-800/80 flex-wrap">
+                    <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                      History ({versions.length}):
+                    </span>
+                    {versions.map((ver, idx) => {
+                      const isActive =
+                        currentContent.version === ver.version &&
+                        currentContent.angle === ver.angle &&
+                        currentContent.hook.primary === ver.hook.primary;
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setCurrentContent(ver);
+                            if (ver.angle) {
+                              setSelectedAngle(ver.angle);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isActive
+                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                              : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-850'
+                          }`}
+                        >
+                          <span>v{ver.version || idx + 1}</span>
+                          <span className="capitalize text-[10px] opacity-75">
+                            ({ver.angle || 'prior'})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Error Alert Banner with Retry Button */}
+              {generationError && (
+                <div className="p-4 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-rose-300">
+                        Generation Failed
+                      </h5>
+                      <p className="text-xs text-rose-200/90 mt-0.5 font-medium leading-relaxed">
+                        {generationError}
+                      </p>
+                      <p className="text-[11px] text-neutral-400 mt-1">
+                        Your previous valid content is preserved below.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                      onClick={() => handleGenerate(selectedAngle)}
+                      disabled={isGenerating}
+                      className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                      <span>Retry</span>
+                    </button>
+                    <button
+                      onClick={() => setGenerationError(null)}
+                      className="p-1.5 text-rose-400 hover:text-white rounded-lg hover:bg-rose-900/50 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Studio Header Action Bar */}
               <div className="p-4 sm:p-5 rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -364,23 +578,31 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-400 mt-0.5">
-                    Structured Reel package ready to record.
+                    {currentContent.isAiGenerated
+                      ? `AI-generated Reel package for @fitnesswithananya using the "${selectedAngle}" angle.`
+                      : 'Sample preview brief. Generate real AI content tailored to your selected angle.'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <button
-                    onClick={handleRegenerate}
+                    onClick={() => handleGenerate()}
                     disabled={isGenerating}
-                    className="px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white font-semibold text-xs border border-neutral-700 transition-colors flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs border border-emerald-500/40 shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin text-indigo-400' : 'text-neutral-400'}`} />
-                    <span>{isGenerating ? 'Generating...' : 'Regenerate Variation'}</span>
+                    <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin text-amber-200' : 'text-amber-200'}`} />
+                    <span>
+                      {isGenerating
+                        ? 'Generating with Gemini...'
+                        : currentContent.isAiGenerated
+                        ? `Regenerate Variation (${selectedAngle})`
+                        : `Generate with AI (${selectedAngle})`}
+                    </span>
                   </button>
 
                   <button
                     onClick={() => handleCopy(
-                      `HOOK:\n${currentContent.hook.primary}\n\nSCRIPT:\n${currentContent.script.sections.map(s => `[${s.timestamp}] ${s.scene}: ${s.spokenAudio}`).join('\n')}\n\nCAPTION:\n${currentContent.caption}\n\nCTA:\n${currentContent.cta.pinnedCommentPrompt}`,
+                      `HOOK:\n${currentContent.hook.primary}\n\nTEXT OVERLAY:\n${currentContent.hook.textOverlay}\n\nVISUAL HOOK:\n${currentContent.hook.visualHook}\n\nSCRIPT:\n${currentContent.script.sections.map(s => `[${s.timestamp}] ${s.scene}: ${s.spokenAudio}`).join('\n')}\n\nCAPTION:\n${currentContent.caption}\n\nCTA:\n${currentContent.cta.pinnedCommentPrompt}\n\nHASHTAGS:\n${currentContent.hashtags.join(' ')}`,
                       'all'
                     )}
                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-600/20"
@@ -391,13 +613,13 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                 </div>
               </div>
 
-              {/* 1. HOOK */}
+              {/* 1. HOOK SECTION */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                     <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                      Hook
+                      Hook ({currentContent.angle || selectedAngle})
                     </h4>
                   </div>
                   <button
@@ -411,7 +633,7 @@ Hashtags: ${currentContent.hashtags.join(' ')}
 
                 <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800">
                   <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 block mb-1">
-                    Spoken Hook
+                    Spoken Hook (First 2s)
                   </span>
                   <p className="text-base font-semibold text-white leading-snug">
                     “{currentContent.hook.primary}”
@@ -428,9 +650,34 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                     <p className="text-neutral-300">{currentContent.hook.visualHook}</p>
                   </div>
                 </div>
+
+                {/* Alternative Hooks */}
+                {currentContent.hook.alternativeHooks && currentContent.hook.alternativeHooks.length > 0 && (
+                  <div className="pt-2 border-t border-neutral-900">
+                    <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                      Alternative Hooks
+                    </span>
+                    <div className="space-y-1.5">
+                      {currentContent.hook.alternativeHooks.map((alt, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-neutral-900/40 border border-neutral-800/80 text-xs text-neutral-300"
+                        >
+                          <span>{i + 1}. “{alt}”</span>
+                          <button
+                            onClick={() => handleCopy(alt, `alt-hook-${i}`)}
+                            className="text-neutral-400 hover:text-white p-1 rounded hover:bg-neutral-800 shrink-0 cursor-pointer ml-2"
+                          >
+                            {copiedSection === `alt-hook-${i}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* 2. SCRIPT */}
+              {/* 2. SCRIPT SECTION */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -449,6 +696,10 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                     {copiedSection === 'script' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedSection === 'script' ? 'Copied' : 'Copy Script'}</span>
                   </button>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-neutral-900/50 border border-neutral-800/80 text-xs text-neutral-400">
+                  <strong className="text-neutral-200">Audio Direction:</strong> {currentContent.script.audioVibe}
                 </div>
 
                 <div className="space-y-3">
@@ -481,7 +732,7 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                 </div>
               </div>
 
-              {/* 3. CAPTION */}
+              {/* 3. CAPTION SECTION */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -512,13 +763,13 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                 </div>
               </div>
 
-              {/* 4. CTA */}
+              {/* 4. CTA SECTION */}
               <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-violet-400" />
                     <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                      CTA
+                      Call to Action (CTA)
                     </h4>
                   </div>
                   <button
@@ -546,6 +797,31 @@ Hashtags: ${currentContent.hashtags.join(' ')}
                   </div>
                 </div>
               </div>
+
+              {/* 5. CREATOR TIPS SECTION */}
+              {currentContent.creatorTips && currentContent.creatorTips.length > 0 && (
+                <div className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                      Creator Execution Tips
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {currentContent.creatorTips.map((tip, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800/80 text-xs text-neutral-300 flex items-start gap-2"
+                      >
+                        <span className="w-5 h-5 rounded-full bg-amber-400/10 text-amber-300 flex items-center justify-center font-bold shrink-0 mt-0.5 text-[10px]">
+                          {i + 1}
+                        </span>
+                        <p className="leading-snug">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

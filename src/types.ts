@@ -1,3 +1,4 @@
+import type { ContentAngle, OpportunityScoreBreakdown } from './types/normalized';
 export * from './types/normalized';
 
 export interface InstagramAccount {
@@ -102,6 +103,9 @@ export interface GeneratedContent {
   };
   hashtags: string[];
   creatorTips: string[];
+  angle?: ContentAngle;
+  version?: number;
+  isAiGenerated?: boolean;
 }
 
 export interface Opportunity {
@@ -112,9 +116,12 @@ export interface Opportunity {
   badge: string;
   trendId?: string;
   matchedCategory: string;
+  scoreBreakdown?: OpportunityScoreBreakdown;
   whyBreakdown: WhyBreakdown;
   scoreMetrics: ScoreMetrics;
   generatedContent: GeneratedContent;
+  selectedAngle?: ContentAngle;
+  contentVersions?: GeneratedContent[];
 }
 
 export type ScreenState = 

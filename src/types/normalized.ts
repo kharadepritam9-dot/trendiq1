@@ -10,10 +10,10 @@ export type GrowthType = 'breakout' | 'rising' | 'sustained' | 'steady';
 export type CompetitionLevel = 'Low' | 'Medium' | 'High';
 
 export type ContentAngle =
-  | 'contrarian_debunk'
-  | 'actionable_protocol'
-  | 'story_transformation'
-  | 'interactive_challenge';
+  | 'educational'
+  | 'punchy'
+  | 'storytelling'
+  | 'conversational';
 
 export interface NormalizedPost {
   id: string;
@@ -145,6 +145,8 @@ export interface GeneratedContent {
   hashtags: string[];
   creatorTips: string[];
   angle?: ContentAngle;
+  version?: number;
+  isAiGenerated?: boolean;
 }
 
 export interface Opportunity {
@@ -160,4 +162,5 @@ export interface Opportunity {
   scoreMetrics: ScoreMetrics;
   generatedContent: GeneratedContent;
   selectedAngle?: ContentAngle;
+  contentVersions?: GeneratedContent[];
 }
