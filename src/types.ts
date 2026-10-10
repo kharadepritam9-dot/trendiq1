@@ -1,3 +1,5 @@
+export * from './types/normalized';
+
 export interface InstagramAccount {
   username: string;
   fullName: string;
